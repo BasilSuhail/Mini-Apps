@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draw Flowers 🌸</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(to bottom, #2a2a2a 0%, #000000 100%);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        header {
+            background: #3a3a3a;
+            padding: 30px;
+            text-align: center;
+            border-bottom: 3px solid #555;
+        }
+
+        h1 {
+            color: #ffffff;
+            font-size: 3em;
+            font-weight: 300;
+            letter-spacing: 3px;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 120px);
+            cursor: crosshair;
+        }
+
+        #canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .instruction {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 2em;
+            text-align: center;
+            pointer-events: none;
+            transition: opacity 0.5s;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .instruction.hidden {
+            opacity: 0;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 1em;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Draw Flowers</h1>
+    </header>
+
+    <div id="canvas-container">
+        <canvas id="canvas"></canvas>
+        <div class="instruction" id="instruction">Click To Add Flowers</div>
+        <div class="controls">
+            <button id="clear-btn">Clear Canvas</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const instruction = document.getElementById('instruction');
+        const clearBtn = document.getElementById('clear-btn');
+
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Flower colors (pink/purple gradient)
+        const flowerColors = [
+            { petal: ['#ff6b9d', '#ff8fab', '#ffa5b8'], center: '#ffd700' },
+            { petal: ['#c77dff', '#9d4edd', '#b298dc'], center: '#ffa500' },
+            { petal: ['#ff6ba8', '#ff8bc3', '#ffadd5'], center: '#ffb700' },
+            { petal: ['#a855f7', '#9333ea', '#ba8bf7'], center: '#ff9500' }
+        ];
+
+        class Flower {
+            constructor(x, y, size, colorScheme) {
+                this.x = x;
+                this.y = y;
+                this.size = size;
+                this.colorScheme = colorScheme;
+                this.stemHeight = size * 3 + Math.random() * size * 2;
+                this.swayOffset = Math.random() * Math.PI * 2;
+                this.swaySpeed = 0.02 + Math.random() * 0.02;
+                this.stemCurve = (Math.random() - 0.5) * 30;
+                this.petalCount = 5 + Math.floor(Math.random() * 3);
+                this.rotation = Math.random() * Math.PI * 2;
+                this.growProgress = 0;
+            }
+
+            update() {
+                if (this.growProgress < 1) {
+                    this.growProgress += 0.05;
+                }
+            }
+
+            draw(time) {
+                const sway = Math.sin(time * this.swaySpeed + this.swayOffset) * 5;
+                const currentHeight = this.stemHeight * this.growProgress;
+                const currentSize = this.size * this.growProgress;
+
+                ctx.save();
+
+                // Draw stem
+                ctx.strokeStyle = `rgba(76, 153, 76, ${this.growProgress})`;
+                ctx.lineWidth = Math.max(1, this.size / 8);
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+
+                // Curved stem
+                const controlX = this.x + this.stemCurve + sway;
+                const controlY = this.y - currentHeight / 2;
+                const endX = this.x + sway;
+                const endY = this.y - currentHeight;
+
+                ctx.quadraticCurveTo(controlX, controlY, endX, endY);
+                ctx.stroke();
+
+                // Draw flower at the top of stem
+                ctx.translate(endX, endY);
+                ctx.rotate(this.rotation + sway * 0.02);
+
+                // Draw petals
+                for (let i = 0; i < this.petalCount; i++) {
+                    const angle = (Math.PI * 2 / this.petalCount) * i;
+                    ctx.save();
+                    ctx.rotate(angle);
+
+                    // Create gradient for petal
+                    const gradient = ctx.createRadialGradient(0, -currentSize * 0.8, 0, 0, -currentSize * 0.8, currentSize * 0.6);
+                    gradient.addColorStop(0, this.colorScheme.petal[0]);
+                    gradient.addColorStop(0.5, this.colorScheme.petal[1]);
+                    gradient.addColorStop(1, this.colorScheme.petal[2]);
+
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.ellipse(0, -currentSize * 0.8, currentSize * 0.4, currentSize * 0.6, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.restore();
+                }
+
+                // Draw center
+                const centerGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, currentSize * 0.3);
+                centerGradient.addColorStop(0, this.colorScheme.center);
+                centerGradient.addColorStop(1, '#ff8c00');
+                ctx.fillStyle = centerGradient;
+                ctx.beginPath();
+                ctx.arc(0, 0, currentSize * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        let flowers = [];
+        let animationId;
+        let clickCount = 0;
+
+        function animate() {
+            const time = Date.now() * 0.001;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            flowers.forEach(flower => {
+                flower.update();
+                flower.draw(time);
+            });
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Hide instruction after first click
+            if (clickCount === 0) {
+                instruction.classList.add('hidden');
+            }
+            clickCount++;
+
+            // Random size and color
+            const size = 15 + Math.random() * 25;
+            const colorScheme = flowerColors[Math.floor(Math.random() * flowerColors.length)];
+
+            flowers.push(new Flower(x, y, size, colorScheme));
+
+            // Start animation if not already running
+            if (!animationId) {
+                animate();
+            }
+        });
+
+        clearBtn.addEventListener('click', () => {
+            flowers = [];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            instruction.classList.remove('hidden');
+            clickCount = 0;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+        });
+
+        // Start animation loop
+        animate();
+    </script>
+</body>
+</html>
