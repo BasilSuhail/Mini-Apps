@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draw Flowers</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000000;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            cursor: crosshair;
+        }
+
+        .instruction {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 2em;
+            font-family: Georgia, serif;
+            pointer-events: none;
+            transition: opacity 1s;
+            z-index: 10;
+        }
+
+        .instruction.hidden {
+            opacity: 0;
+        }
+
+        .clean-btn {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 25px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: Georgia, serif;
+            backdrop-filter: blur(5px);
+            z-index: 10;
+        }
+
+        .clean-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div class="instruction" id="instruction">Click To Add Flowers</div>
+    <button class="clean-btn" id="cleanBtn">Clean</button>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const instruction = document.getElementById('instruction');
+        const cleanBtn = document.getElementById('cleanBtn');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        const pointer = {
+            x: 0.66,
+            y: 0.3,
+            clicked: false
+        };
+
+        class Flower {
+            constructor(x, y) {
+                this.x = x;
+                this.y = canvas.height;
+                this.targetY = y;
+                this.growProgress = 0;
+                this.maxHeight = canvas.height - y;
+
+                // Stem properties
+                this.stemWidth = 2 + Math.random() * 2;
+                this.curvature = (Math.random() - 0.5) * 100;
+                this.swayPhase = Math.random() * Math.PI * 2;
+                this.swaySpeed = 0.02 + Math.random() * 0.02;
+
+                // Petal properties
+                this.petalCount = 5 + Math.floor(Math.random() * 3);
+                this.petalSize = 20 + Math.random() * 30;
+                this.rotation = Math.random() * Math.PI * 2;
+
+                // Neon colors
+                const colorSchemes = [
+                    { petal: '#ff1493', center: '#ff6b35' },  // Deep pink + orange
+                    { petal: '#ff00ff', center: '#ff1493' },  // Magenta + deep pink
+                    { petal: '#ff6b35', center: '#ffd700' },  // Orange + gold
+                    { petal: '#8b00ff', center: '#ff00ff' },  // Violet + magenta
+                    { petal: '#ff69b4', center: '#ff1493' }   // Hot pink + deep pink
+                ];
+                this.color = colorSchemes[Math.floor(Math.random() * colorSchemes.length)];
+
+                this.grown = false;
+            }
+
+            update() {
+                if (this.growProgress < 1) {
+                    this.growProgress += 0.01;
+                    if (this.growProgress >= 1) {
+                        this.grown = true;
+                    }
+                }
+            }
+
+            draw(time) {
+                const currentHeight = this.maxHeight * Math.min(this.growProgress, 1);
+                const sway = Math.sin(time * this.swaySpeed + this.swayPhase) * 8;
+
+                ctx.save();
+
+                // Draw stem with Bezier curve
+                const startX = this.x;
+                const startY = canvas.height;
+                const cp1X = this.x + this.curvature / 2 + sway;
+                const cp1Y = canvas.height - currentHeight * 0.3;
+                const cp2X = this.x + this.curvature + sway;
+                const cp2Y = canvas.height - currentHeight * 0.7;
+                const endX = this.x + sway;
+                const endY = canvas.height - currentHeight;
+
+                // Stem gradient
+                const stemGradient = ctx.createLinearGradient(startX, startY, endX, endY);
+                stemGradient.addColorStop(0, '#1a5f1a');
+                stemGradient.addColorStop(0.5, '#2d8b2d');
+                stemGradient.addColorStop(1, '#3fb83f');
+
+                ctx.strokeStyle = stemGradient;
+                ctx.lineWidth = this.stemWidth;
+                ctx.shadowBlur = 0;
+
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, endX, endY);
+                ctx.stroke();
+
+                // Draw flower head if stem is mostly grown
+                if (this.growProgress > 0.5) {
+                    const flowerBloom = Math.min((this.growProgress - 0.5) * 2, 1);
+                    const flowerX = endX;
+                    const flowerY = endY;
+
+                    ctx.translate(flowerX, flowerY);
+                    ctx.rotate(this.rotation + sway * 0.01);
+
+                    // Draw petals with glow effect
+                    ctx.shadowBlur = 30;
+                    ctx.shadowColor = this.color.petal;
+                    ctx.globalCompositeOperation = 'lighter';
+
+                    for (let i = 0; i < this.petalCount; i++) {
+                        const angle = (Math.PI * 2 / this.petalCount) * i;
+                        ctx.save();
+                        ctx.rotate(angle);
+
+                        ctx.fillStyle = this.color.petal;
+                        ctx.beginPath();
+                        ctx.ellipse(
+                            0,
+                            -this.petalSize * 0.6 * flowerBloom,
+                            this.petalSize * 0.35 * flowerBloom,
+                            this.petalSize * 0.6 * flowerBloom,
+                            0, 0, Math.PI * 2
+                        );
+                        ctx.fill();
+
+                        ctx.restore();
+                    }
+
+                    // Draw center with intense glow
+                    ctx.shadowBlur = 40;
+                    ctx.shadowColor = this.color.center;
+                    ctx.fillStyle = this.color.center;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.petalSize * 0.2 * flowerBloom, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.globalCompositeOperation = 'source-over';
+                }
+
+                ctx.restore();
+            }
+        }
+
+        let flowers = [];
+        let hasClicked = false;
+
+        function animate() {
+            const time = Date.now() * 0.001;
+
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            flowers.forEach(flower => {
+                flower.update();
+                flower.draw(time);
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            flowers.push(new Flower(x, y));
+
+            if (!hasClicked) {
+                instruction.classList.add('hidden');
+                hasClicked = true;
+            }
+        });
+
+        cleanBtn.addEventListener('click', () => {
+            flowers = [];
+            instruction.classList.remove('hidden');
+            hasClicked = false;
+        });
+
+        animate();
+    </script>
+</body>
+</html>
