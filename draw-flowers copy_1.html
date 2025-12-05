@@ -82,12 +82,6 @@
             canvas.height = window.innerHeight;
         });
 
-        const pointer = {
-            x: 0.66,
-            y: 0.3,
-            clicked: false
-        };
-
         class Flower {
             constructor(x, y) {
                 this.x = x;
@@ -96,96 +90,95 @@
                 this.growProgress = 0;
                 this.maxHeight = canvas.height - y;
 
-                // Stem properties
-                this.stemWidth = 2 + Math.random() * 2;
-                this.curvature = (Math.random() - 0.5) * 100;
+                this.stemWidth = 2 + Math.random();
+                this.curvature = (Math.random() - 0.5) * 80;
                 this.swayPhase = Math.random() * Math.PI * 2;
                 this.swaySpeed = 0.02 + Math.random() * 0.02;
 
-                // Petal properties
-                this.petalCount = 5 + Math.floor(Math.random() * 3);
-                this.petalSize = 20 + Math.random() * 30;
+                this.petalCount = 4 + Math.floor(Math.random() * 2);
+                this.size = 25 + Math.random() * 20;
                 this.rotation = Math.random() * Math.PI * 2;
 
-                // Neon colors
+                // Color palettes matching reference image
                 const colorSchemes = [
-                    { petal: '#ff1493', center: '#ff6b35' },  // Deep pink + orange
-                    { petal: '#ff00ff', center: '#ff1493' },  // Magenta + deep pink
-                    { petal: '#ff6b35', center: '#ffd700' },  // Orange + gold
-                    { petal: '#8b00ff', center: '#ff00ff' },  // Violet + magenta
-                    { petal: '#ff69b4', center: '#ff1493' }   // Hot pink + deep pink
+                    { outer: '#ff1493', inner: '#ff6b35', center: '#ffd700' }, // Pink-Orange
+                    { outer: '#8b00ff', inner: '#ff1493', center: '#ff6b35' }, // Purple-Pink
+                    { outer: '#ff6b35', inner: '#ff8c42', center: '#ffd700' }, // Orange
+                    { outer: '#c77dff', inner: '#ff69b4', center: '#ffa500' }, // Light Purple-Pink
                 ];
-                this.color = colorSchemes[Math.floor(Math.random() * colorSchemes.length)];
 
-                this.grown = false;
+                this.colors = colorSchemes[Math.floor(Math.random() * colorSchemes.length)];
+                this.bloomed = false;
             }
 
             update() {
                 if (this.growProgress < 1) {
                     this.growProgress += 0.01;
-                    if (this.growProgress >= 1) {
-                        this.grown = true;
+                    if (this.growProgress >= 0.8 && !this.bloomed) {
+                        this.bloomed = true;
                     }
                 }
             }
 
             draw(time) {
                 const currentHeight = this.maxHeight * Math.min(this.growProgress, 1);
-                const sway = Math.sin(time * this.swaySpeed + this.swayPhase) * 8;
+                const sway = Math.sin(time * this.swaySpeed + this.swayPhase) * 6;
 
                 ctx.save();
 
-                // Draw stem with Bezier curve
+                // Draw stem
                 const startX = this.x;
                 const startY = canvas.height;
-                const cp1X = this.x + this.curvature / 2 + sway;
+                const cp1X = this.x + this.curvature / 2 + sway * 0.5;
                 const cp1Y = canvas.height - currentHeight * 0.3;
-                const cp2X = this.x + this.curvature + sway;
+                const cp2X = this.x + this.curvature + sway * 0.8;
                 const cp2Y = canvas.height - currentHeight * 0.7;
                 const endX = this.x + sway;
                 const endY = canvas.height - currentHeight;
 
-                // Stem gradient
-                const stemGradient = ctx.createLinearGradient(startX, startY, endX, endY);
-                stemGradient.addColorStop(0, '#1a5f1a');
-                stemGradient.addColorStop(0.5, '#2d8b2d');
-                stemGradient.addColorStop(1, '#3fb83f');
-
-                ctx.strokeStyle = stemGradient;
+                ctx.strokeStyle = '#4a7c4a';
                 ctx.lineWidth = this.stemWidth;
-                ctx.shadowBlur = 0;
+                ctx.lineCap = 'round';
 
                 ctx.beginPath();
                 ctx.moveTo(startX, startY);
                 ctx.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, endX, endY);
                 ctx.stroke();
 
-                // Draw flower head if stem is mostly grown
+                // Draw flower
                 if (this.growProgress > 0.5) {
                     const flowerBloom = Math.min((this.growProgress - 0.5) * 2, 1);
-                    const flowerX = endX;
-                    const flowerY = endY;
 
-                    ctx.translate(flowerX, flowerY);
+                    ctx.translate(endX, endY);
                     ctx.rotate(this.rotation + sway * 0.01);
 
-                    // Draw petals with glow effect
-                    ctx.shadowBlur = 30;
-                    ctx.shadowColor = this.color.petal;
-                    ctx.globalCompositeOperation = 'lighter';
-
+                    // Draw petals - simple overlapping ellipses
                     for (let i = 0; i < this.petalCount; i++) {
                         const angle = (Math.PI * 2 / this.petalCount) * i;
+
                         ctx.save();
                         ctx.rotate(angle);
 
-                        ctx.fillStyle = this.color.petal;
+                        // Outer glow/edge
+                        const outerGradient = ctx.createRadialGradient(
+                            0, -this.size * 0.5 * flowerBloom,
+                            0,
+                            0, -this.size * 0.5 * flowerBloom,
+                            this.size * 0.7 * flowerBloom
+                        );
+                        outerGradient.addColorStop(0, this.colors.outer);
+                        outerGradient.addColorStop(0.6, this.colors.inner);
+                        outerGradient.addColorStop(1, 'rgba(0,0,0,0.1)');
+
+                        ctx.fillStyle = outerGradient;
+                        ctx.globalAlpha = 0.8;
+
                         ctx.beginPath();
                         ctx.ellipse(
                             0,
-                            -this.petalSize * 0.6 * flowerBloom,
-                            this.petalSize * 0.35 * flowerBloom,
-                            this.petalSize * 0.6 * flowerBloom,
+                            -this.size * 0.5 * flowerBloom,
+                            this.size * 0.45 * flowerBloom,
+                            this.size * 0.7 * flowerBloom,
                             0, 0, Math.PI * 2
                         );
                         ctx.fill();
@@ -193,22 +186,191 @@
                         ctx.restore();
                     }
 
-                    // Draw center with intense glow
-                    ctx.shadowBlur = 40;
-                    ctx.shadowColor = this.color.center;
-                    ctx.fillStyle = this.color.center;
-                    ctx.beginPath();
-                    ctx.arc(0, 0, this.petalSize * 0.2 * flowerBloom, 0, Math.PI * 2);
-                    ctx.fill();
+                    // Draw center
+                    ctx.globalAlpha = 1;
+                    const centerGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.size * 0.25 * flowerBloom);
+                    centerGradient.addColorStop(0, this.colors.center);
+                    centerGradient.addColorStop(0.6, this.colors.inner);
+                    centerGradient.addColorStop(1, this.colors.outer);
 
-                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.fillStyle = centerGradient;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.size * 0.25 * flowerBloom, 0, Math.PI * 2);
+                    ctx.fill();
                 }
 
                 ctx.restore();
             }
+
+            getBloomPosition() {
+                return {
+                    x: this.x,
+                    y: canvas.height - this.maxHeight
+                };
+            }
+        }
+
+        class Butterfly {
+            constructor(targetFlower) {
+                this.targetFlower = targetFlower;
+                const flowerPos = targetFlower.getBloomPosition();
+                this.x = Math.random() < 0.5 ? -30 : canvas.width + 30;
+                this.y = Math.random() * canvas.height * 0.5;
+                this.targetX = flowerPos.x + (Math.random() - 0.5) * 50;
+                this.targetY = flowerPos.y + (Math.random() - 0.5) * 50;
+                this.size = 10 + Math.random() * 12;
+                this.phase = 'approaching';
+                this.flutterTime = 0;
+                this.hoverTime = 0;
+                this.maxHoverTime = 150 + Math.random() * 100;
+                this.wingAngle = 0;
+                this.wingSpeed = 0.2 + Math.random() * 0.15;
+                this.opacity = 0;
+                this.fadeIn = true;
+
+                const colors = [
+                    { wing: '#00ffff', mid: '#00d4ff', accent: '#0080ff', edge: '#0040ff' },
+                    { wing: '#ff00ff', mid: '#ff69b4', accent: '#8b00ff', edge: '#4b0082' },
+                    { wing: '#ff1493', mid: '#ff69b4', accent: '#ffa0d2', edge: '#ff69b4' },
+                    { wing: '#00ff00', mid: '#7cfc00', accent: '#adff2f', edge: '#7fff00' }
+                ];
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+            }
+
+            update() {
+                this.flutterTime++;
+                this.wingAngle += this.wingSpeed;
+
+                if (this.fadeIn && this.opacity < 1) {
+                    this.opacity += 0.03;
+                }
+
+                if (this.phase === 'approaching') {
+                    const dx = this.targetX - this.x;
+                    const dy = this.targetY - this.y;
+                    this.x += dx * 0.02;
+                    this.y += dy * 0.02 + Math.sin(this.flutterTime * 0.1) * 2;
+
+                    if (Math.abs(dx) < 20 && Math.abs(dy) < 20) {
+                        this.phase = 'hovering';
+                    }
+                } else if (this.phase === 'hovering') {
+                    this.hoverTime++;
+                    this.x += Math.sin(this.flutterTime * 0.05) * 2;
+                    this.y += Math.cos(this.flutterTime * 0.08) * 2;
+
+                    if (this.hoverTime >= this.maxHoverTime) {
+                        this.phase = 'leaving';
+                        this.targetX = this.x < canvas.width / 2 ? -30 : canvas.width + 30;
+                        this.targetY = Math.random() * canvas.height * 0.3;
+                        this.fadeIn = false;
+                    }
+                } else if (this.phase === 'leaving') {
+                    const dx = this.targetX - this.x;
+                    const dy = this.targetY - this.y;
+                    this.x += dx * 0.03;
+                    this.y += dy * 0.03 + Math.sin(this.flutterTime * 0.1) * 2;
+                    this.opacity -= 0.02;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.opacity);
+                ctx.translate(this.x, this.y);
+
+                const wingFlap = Math.sin(this.wingAngle);
+                const wingScale = 0.3 + Math.abs(wingFlap) * 0.7;
+
+                ctx.globalCompositeOperation = 'lighter';
+
+                // Left wing
+                ctx.save();
+                ctx.scale(1, wingScale);
+                ctx.rotate(-0.2);
+
+                const wingGradient1 = ctx.createRadialGradient(
+                    -this.size * 0.3, -this.size * 0.4, 0,
+                    -this.size * 0.5, -this.size * 0.5, this.size * 1.2
+                );
+                wingGradient1.addColorStop(0, this.color.wing);
+                wingGradient1.addColorStop(0.3, this.color.mid);
+                wingGradient1.addColorStop(0.6, this.color.accent);
+                wingGradient1.addColorStop(0.9, this.color.edge);
+                wingGradient1.addColorStop(1, 'rgba(0,0,0,0)');
+
+                ctx.shadowBlur = 30;
+                ctx.shadowColor = this.color.wing;
+                ctx.fillStyle = wingGradient1;
+
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.bezierCurveTo(-this.size * 0.3, -this.size * 0.2, -this.size * 0.6, -this.size * 0.5, -this.size * 0.5, -this.size * 0.9);
+                ctx.bezierCurveTo(-this.size * 0.4, -this.size, -this.size * 0.2, -this.size * 0.8, 0, -this.size * 0.3);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.shadowBlur = 20;
+                ctx.fillStyle = this.color.accent;
+                ctx.beginPath();
+                ctx.arc(-this.size * 0.4, -this.size * 0.6, this.size * 0.15, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+
+                // Right wing
+                ctx.save();
+                ctx.scale(1, wingScale);
+                ctx.rotate(0.2);
+
+                const wingGradient2 = ctx.createRadialGradient(
+                    this.size * 0.3, -this.size * 0.4, 0,
+                    this.size * 0.5, -this.size * 0.5, this.size * 1.2
+                );
+                wingGradient2.addColorStop(0, this.color.wing);
+                wingGradient2.addColorStop(0.3, this.color.mid);
+                wingGradient2.addColorStop(0.6, this.color.accent);
+                wingGradient2.addColorStop(0.9, this.color.edge);
+                wingGradient2.addColorStop(1, 'rgba(0,0,0,0)');
+
+                ctx.shadowBlur = 30;
+                ctx.shadowColor = this.color.wing;
+                ctx.fillStyle = wingGradient2;
+
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.bezierCurveTo(this.size * 0.3, -this.size * 0.2, this.size * 0.6, -this.size * 0.5, this.size * 0.5, -this.size * 0.9);
+                ctx.bezierCurveTo(this.size * 0.4, -this.size, this.size * 0.2, -this.size * 0.8, 0, -this.size * 0.3);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.shadowBlur = 20;
+                ctx.fillStyle = this.color.accent;
+                ctx.beginPath();
+                ctx.arc(this.size * 0.4, -this.size * 0.6, this.size * 0.15, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+
+                // Body
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = '#333';
+                ctx.fillStyle = '#1a1a1a';
+                ctx.beginPath();
+                ctx.ellipse(0, -this.size * 0.2, this.size * 0.08, this.size * 0.4, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            isDone() {
+                return this.phase === 'leaving' && this.opacity <= 0;
+            }
         }
 
         let flowers = [];
+        let butterflies = [];
         let hasClicked = false;
 
         function animate() {
@@ -220,6 +382,18 @@
             flowers.forEach(flower => {
                 flower.update();
                 flower.draw(time);
+
+                if (flower.bloomed && Math.random() < 0.01) {
+                    if (butterflies.filter(b => b.targetFlower === flower).length === 0) {
+                        butterflies.push(new Butterfly(flower));
+                    }
+                }
+            });
+
+            butterflies = butterflies.filter(butterfly => !butterfly.isDone());
+            butterflies.forEach(butterfly => {
+                butterfly.update();
+                butterfly.draw();
             });
 
             requestAnimationFrame(animate);
@@ -240,6 +414,7 @@
 
         cleanBtn.addEventListener('click', () => {
             flowers = [];
+            butterflies = [];
             instruction.classList.remove('hidden');
             hasClicked = false;
         });
