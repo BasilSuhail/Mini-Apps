@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compound Interest Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+        }
+        body {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            color: white;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 flex flex-col items-center">
+    <h1 class="text-3xl font-bold mb-6 text-emerald-400">Compound Interest Visualizer</h1>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-6xl">
+        <!-- Inputs -->
+        <div class="glass-card p-6 flex flex-col gap-4">
+            <h2 class="text-xl font-semibold mb-2">Inputs</h2>
+            <div>
+                <label class="block text-sm mb-1">Initial Principal ($)</label>
+                <input type="number" id="principal" value="10000" class="w-full bg-slate-800 border border-slate-700 p-2 rounded focus:ring-2 focus:ring-emerald-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-sm mb-1">Monthly Contribution ($)</label>
+                <input type="number" id="monthly" value="500" class="w-full bg-slate-800 border border-slate-700 p-2 rounded focus:ring-2 focus:ring-emerald-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-sm mb-1">Annual Interest Rate (%)</label>
+                <input type="number" id="rate" value="7" step="0.1" class="w-full bg-slate-800 border border-slate-700 p-2 rounded focus:ring-2 focus:ring-emerald-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-sm mb-1">Time Horizon (Years)</label>
+                <input type="number" id="years" value="20" class="w-full bg-slate-800 border border-slate-700 p-2 rounded focus:ring-2 focus:ring-emerald-500 outline-none">
+            </div>
+            <button onclick="calculate()" class="mt-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded transition">Calculate</button>
+        </div>
+
+        <!-- Chart -->
+        <div class="glass-card p-6 md:col-span-2 flex flex-col items-center">
+            <canvas id="investmentChart" style="max-height: 400px; width: 100%;"></canvas>
+            <div id="resultText" class="mt-6 text-lg font-medium text-center"></div>
+        </div>
+    </div>
+
+    <script>
+        let myChart;
+
+        function calculate() {
+            const principal = parseFloat(document.getElementById('principal').value);
+            const monthly = parseFloat(document.getElementById('monthly').value);
+            const rate = parseFloat(document.getElementById('rate').value) / 100 / 12;
+            const years = parseInt(document.getElementById('years').value);
+            const months = years * 12;
+
+            let balance = principal;
+            let totalInvested = principal;
+            const dataBalance = [principal];
+            const dataInvested = [principal];
+            const labels = ['Year 0'];
+
+            for (let i = 1; i <= months; i++) {
+                balance = (balance + monthly) * (1 + rate);
+                totalInvested += monthly;
+                
+                if (i % 12 === 0) {
+                    dataBalance.push(Math.round(balance));
+                    dataInvested.push(Math.round(totalInvested));
+                    labels.push(`Year ${i/12}`);
+                }
+            }
+
+            const ctx = document.getElementById('investmentChart').getContext('2d');
+            if (myChart) myChart.destroy();
+
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Balance',
+                        data: dataBalance,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        fill: true,
+                        tension: 0.3
+                    }, {
+                        label: 'Total Invested',
+                        data: dataInvested,
+                        borderColor: '#94a3b8',
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { labels: { color: 'white' } }
+                    },
+                    scales: {
+                        y: { 
+                            ticks: { color: 'white', callback: value => '$' + value.toLocaleString() },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: { 
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            });
+
+            document.getElementById('resultText').innerHTML = `
+                In ${years} years, your investment will grow to <span class="text-emerald-400 font-bold">$${Math.round(balance).toLocaleString()}</span>.<br>
+                <span class="text-slate-400 text-sm">Total Invested: $${totalInvested.toLocaleString()} | Total Interest: $${Math.round(balance - totalInvested).toLocaleString()}</span>
+            `;
+        }
+
+        calculate();
+    </script>
+</body>
+</html>
