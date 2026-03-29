@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neumorphic Pomodoro Timer</title>
+    <style>
+        :root {
+            --bg: #e0e5ec;
+            --shadow: #a3b1c6;
+            --highlight: #ffffff;
+            --accent: #6d5dfc;
+        }
+        body {
+            background-color: var(--bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #444;
+        }
+        .container {
+            width: 300px;
+            padding: 40px;
+            border-radius: 50px;
+            background: var(--bg);
+            box-shadow: 20px 20px 60px var(--shadow), -20px -20px 60px var(--highlight);
+            text-align: center;
+        }
+        .timer-display {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 20px 0;
+            color: var(--accent);
+            text-shadow: 2px 2px 4px var(--shadow);
+        }
+        .controls {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+        }
+        button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg);
+            box-shadow: 6px 6px 12px var(--shadow), -6px -6px 12px var(--highlight);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s ease;
+            color: var(--accent);
+            font-size: 18px;
+        }
+        button:active {
+            box-shadow: inset 4px 4px 8px var(--shadow), inset -4px -4px 8px var(--highlight);
+            transform: scale(0.95);
+        }
+        .mode-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        .mode-btn {
+            width: auto;
+            height: auto;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .mode-btn.active {
+            box-shadow: inset 4px 4px 8px var(--shadow), inset -4px -4px 8px var(--highlight);
+            color: #222;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 style="margin-top:0; font-size: 18px; opacity: 0.6;">Focus Timer</h2>
+        
+        <div class="mode-buttons">
+            <div id="work-btn" class="mode-btn active" onclick="setMode('work')">Work</div>
+            <div id="break-btn" class="mode-btn" onclick="setMode('break')">Break</div>
+        </div>
+
+        <div class="timer-display" id="display">25:00</div>
+        
+        <div class="controls">
+            <button id="start-stop" onclick="toggleTimer()">▶</button>
+            <button id="reset" onclick="resetTimer()">↺</button>
+        </div>
+    </div>
+
+    <script>
+        let timeLeft = 25 * 60;
+        let timerId = null;
+        let isRunning = false;
+        let currentMode = 'work';
+
+        function updateDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.getElementById('display').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function toggleTimer() {
+            const btn = document.getElementById('start-stop');
+            if (isRunning) {
+                clearInterval(timerId);
+                btn.textContent = '▶';
+                isRunning = false;
+            } else {
+                timerId = setInterval(() => {
+                    timeLeft--;
+                    updateDisplay();
+                    if (timeLeft === 0) {
+                        clearInterval(timerId);
+                        alert('Time is up!');
+                        resetTimer();
+                    }
+                }, 1000);
+                btn.textContent = '||';
+                isRunning = true;
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(timerId);
+            isRunning = false;
+            document.getElementById('start-stop').textContent = '▶';
+            setMode(currentMode);
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            timeLeft = (mode === 'work' ? 25 : 5) * 60;
+            
+            document.getElementById('work-btn').classList.toggle('active', mode === 'work');
+            document.getElementById('break-btn').classList.toggle('active', mode === 'break');
+            
+            updateDisplay();
+        }
+
+        updateDisplay();
+    </script>
+</body>
+</html>
