@@ -5,11 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Particle System</title>
     <style>
+        :root {
+            --bg: #f8fafc;
+            --particle-color: #0ea5e9;
+            --ui-color: rgba(15, 23, 42, 0.7);
+            --toggle-bg: rgba(255, 255, 255, 0.8);
+            --toggle-border: rgba(0, 0, 0, 0.1);
+        }
+        [data-theme="dark"] {
+            --bg: #050505;
+            --particle-color: #00ffcc;
+            --ui-color: rgba(255, 255, 255, 0.7);
+            --toggle-bg: rgba(0, 0, 0, 0.5);
+            --toggle-border: rgba(255, 255, 255, 0.1);
+        }
         body {
             margin: 0;
             overflow: hidden;
-            background: #050505;
+            background: var(--bg);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            transition: background 0.3s ease;
         }
         canvas {
             display: block;
@@ -18,19 +33,65 @@
             position: absolute;
             top: 20px;
             left: 20px;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--ui-color);
             pointer-events: none;
             text-transform: uppercase;
             letter-spacing: 2px;
             font-size: 12px;
+            transition: color 0.3s ease;
+        }
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--toggle-bg);
+            border: 1px solid var(--toggle-border);
+            color: var(--ui-color);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
         }
     </style>
 </head>
 <body>
+    <button class="theme-toggle" id="theme-toggle" title="Toggle Light Mode">🌙</button>
     <div id="ui">Move mouse to interact</div>
     <canvas id="canvas"></canvas>
 
     <script>
+        // Theme Persistence
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+        
+        // Check for saved theme
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        applyTheme(savedTheme);
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = body.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            applyTheme(newTheme);
+            localStorage.setItem('theme', newTheme);
+            init(); // Re-initialize to apply color changes
+        });
+
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                body.setAttribute('data-theme', 'dark');
+                themeToggle.textContent = '☀️';
+            } else {
+                body.removeAttribute('data-theme');
+                themeToggle.textContent = '🌙';
+            }
+        }
+
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
@@ -60,7 +121,8 @@
             draw() {
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
-                ctx.fillStyle = this.color;
+                const style = getComputedStyle(document.body);
+                ctx.fillStyle = style.getPropertyValue('--particle-color').trim();
                 ctx.fill();
             }
 
@@ -84,6 +146,11 @@
             }
         }
 
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : null;
+        }
+
         function init() {
             particles = [];
             canvas.width = window.innerWidth;
@@ -95,20 +162,23 @@
                 let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
                 let dx = (Math.random() * 2) - 1;
                 let dy = (Math.random() * 2) - 1;
-                let color = '#00ffcc';
-                particles.push(new Particle(x, y, dx, dy, size, color));
+                particles.push(new Particle(x, y, dx, dy, size));
             }
         }
 
         function connect() {
             let opacityValue = 1;
+            const style = getComputedStyle(document.body);
+            const pColor = style.getPropertyValue('--particle-color').trim();
+            const rgb = hexToRgb(pColor);
+
             for (let a = 0; a < particles.length; a++) {
                 for (let b = a; b < particles.length; b++) {
                     let distance = ((particles[a].x - particles[b].x) * (particles[a].x - particles[b].x))
                         + ((particles[a].y - particles[b].y) * (particles[a].y - particles[b].y));
                     if (distance < (canvas.width / 7) * (canvas.height / 7)) {
                         opacityValue = 1 - (distance / 20000);
-                        ctx.strokeStyle = `rgba(0, 255, 204, ${opacityValue})`;
+                        ctx.strokeStyle = `rgba(${rgb}, ${opacityValue})`;
                         ctx.lineWidth = 1;
                         ctx.beginPath();
                         ctx.moveTo(particles[a].x, particles[a].y);
