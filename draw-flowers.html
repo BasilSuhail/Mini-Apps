@@ -5,6 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Draw Flowers</title>
     <style>
+        :root {
+            --bg: #000000;
+            --text: #ffffff;
+            --btn-bg: rgba(255, 255, 255, 0.1);
+            --btn-border: rgba(255, 255, 255, 0.3);
+            --btn-hover: rgba(255, 255, 255, 0.2);
+            --instruction-color: white;
+            --stem-color: #4a7c4a;
+        }
+
+        [data-theme="light"] {
+            --bg: #fdf6e3;
+            --text: #073642;
+            --btn-bg: rgba(0, 0, 0, 0.05);
+            --btn-border: rgba(0, 0, 0, 0.1);
+            --btn-hover: rgba(0, 0, 0, 0.1);
+            --instruction-color: #073642;
+            --stem-color: #2d5a27;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,19 +32,20 @@
         }
 
         body {
-            background: #000000;
+            background: var(--bg);
             overflow: hidden;
             height: 100vh;
             touch-action: none;
             -webkit-user-select: none;
             user-select: none;
+            transition: background 0.5s ease;
         }
 
         #canvas {
             display: block;
             width: 100%;
             height: 100%;
-            background: #000000;
+            background: var(--bg);
             cursor: crosshair;
         }
 
@@ -33,11 +54,11 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: white;
+            color: var(--instruction-color);
             font-size: 2em;
             font-family: Georgia, serif;
             pointer-events: none;
-            transition: opacity 1s;
+            transition: opacity 1s, color 0.5s;
             z-index: 10;
             text-align: center;
             padding: 0 20px;
@@ -59,9 +80,9 @@
             left: 50%;
             transform: translateX(-50%);
             padding: 12px 30px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: var(--btn-bg);
+            color: var(--text);
+            border: 1px solid var(--btn-border);
             border-radius: 25px;
             cursor: pointer;
             font-family: Georgia, serif;
@@ -72,7 +93,26 @@
         }
 
         .clean-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: var(--btn-hover);
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-border);
+            color: var(--text);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
         }
 
         @media (max-width: 768px) {
@@ -85,11 +125,36 @@
     </style>
 </head>
 <body>
+    <button class="theme-toggle" id="theme-toggle" title="Toggle Light Mode">🌙</button>
     <canvas id="canvas"></canvas>
     <div class="instruction" id="instruction">Click To Add Flowers</div>
     <button class="clean-btn" id="cleanBtn">Clean</button>
 
     <script>
+        // Theme Persistence
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+        
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        applyTheme(savedTheme);
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = body.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+
+        function applyTheme(theme) {
+            if (theme === 'light') {
+                body.setAttribute('data-theme', 'light');
+                themeToggle.textContent = '☀️';
+            } else {
+                body.removeAttribute('data-theme');
+                themeToggle.textContent = '🌙';
+            }
+        }
+
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const instruction = document.getElementById('instruction');
@@ -170,7 +235,8 @@
                 const endX = this.x + sway;
                 const endY = canvas.height - currentHeight;
 
-                ctx.strokeStyle = '#4a7c4a';
+                const style = getComputedStyle(document.body);
+                ctx.strokeStyle = style.getPropertyValue('--stem-color').trim();
                 ctx.lineWidth = this.stemWidth;
                 ctx.lineCap = 'round';
 
@@ -276,7 +342,8 @@
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.rotation);
 
-                ctx.fillStyle = '#ffffff';
+                const style = getComputedStyle(document.body);
+                ctx.fillStyle = style.getPropertyValue('--text').trim();
                 ctx.beginPath();
                 for (let i = 0; i < 4; i++) {
                     const angle = (Math.PI / 2) * i;
@@ -463,7 +530,8 @@
         function animate() {
             const time = Date.now() * 0.001;
 
-            ctx.fillStyle = '#000000';
+            const style = getComputedStyle(document.body);
+            ctx.fillStyle = style.getPropertyValue('--bg').trim();
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             flowers.forEach(flower => {
