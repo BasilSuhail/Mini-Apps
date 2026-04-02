@@ -10,6 +10,14 @@
             --shadow: #a3b1c6;
             --highlight: #ffffff;
             --accent: #6d5dfc;
+            --text: #444;
+        }
+        [data-theme="dark"] {
+            --bg: #2d343e;
+            --shadow: #1b1f25;
+            --highlight: #3f4957;
+            --text: #c9d1d9;
+            --accent: #8b7efc;
         }
         body {
             background-color: var(--bg);
@@ -19,7 +27,8 @@
             height: 100vh;
             margin: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #444;
+            color: var(--text);
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
         .container {
             width: 300px;
@@ -28,6 +37,16 @@
             background: var(--bg);
             box-shadow: 20px 20px 60px var(--shadow), -20px -20px 60px var(--highlight);
             text-align: center;
+            position: relative;
+        }
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 35px;
+            height: 35px;
+            font-size: 14px;
+            cursor: pointer;
         }
         .timer-display {
             font-size: 48px;
@@ -76,12 +95,13 @@
         }
         .mode-btn.active {
             box-shadow: inset 4px 4px 8px var(--shadow), inset -4px -4px 8px var(--highlight);
-            color: #222;
+            color: var(--text);
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <button class="theme-toggle" id="theme-toggle" title="Toggle Dark Mode">🌙</button>
         <h2 style="margin-top:0; font-size: 18px; opacity: 0.6;">Focus Timer</h2>
         
         <div class="mode-buttons">
@@ -98,6 +118,31 @@
     </div>
 
     <script>
+        // Theme Persistence
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+        
+        // Check for saved theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        applyTheme(savedTheme);
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = body.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            applyTheme(newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                body.setAttribute('data-theme', 'dark');
+                themeToggle.textContent = '☀️';
+            } else {
+                body.removeAttribute('data-theme');
+                themeToggle.textContent = '🌙';
+            }
+        }
+
         let timeLeft = 25 * 60;
         let timerId = null;
         let isRunning = false;
