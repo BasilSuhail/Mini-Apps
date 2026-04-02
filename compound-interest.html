@@ -7,41 +7,85 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #1e293b, #0f172a);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-color: white;
+            --input-bg: #1e293b;
+            --input-border: #334155;
+            --chart-text: white;
+            --chart-grid: rgba(255, 255, 255, 0.1);
+        }
+        [data-theme="light"] {
+            --bg-gradient: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            --glass-bg: rgba(255, 255, 255, 0.8);
+            --glass-border: rgba(0, 0, 0, 0.05);
+            --text-color: #0f172a;
+            --input-bg: white;
+            --input-border: #cbd5e1;
+            --chart-text: #334155;
+            --chart-grid: rgba(0, 0, 0, 0.05);
+        }
         .glass-card {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--glass-bg);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid var(--glass-border);
             border-radius: 15px;
         }
         body {
-            background: linear-gradient(135deg, #1e293b, #0f172a);
-            color: white;
+            background: var(--bg-gradient);
+            color: var(--text-color);
             min-height: 100vh;
+            transition: all 0.3s ease;
+        }
+        input {
+            background-color: var(--input-bg) !important;
+            border-color: var(--input-border) !important;
+            color: var(--text-color) !important;
+        }
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-color);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
 <body class="p-4 md:p-8 flex flex-col items-center">
-    <h1 class="text-3xl font-bold mb-6 text-emerald-400">Compound Interest Visualizer</h1>
+    <button class="theme-toggle" id="theme-toggle" title="Toggle Light Mode">🌙</button>
+    <h1 class="text-3xl font-bold mb-6 text-emerald-500">Compound Interest Visualizer</h1>
     
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-6xl">
         <!-- Inputs -->
         <div class="glass-card p-6 flex flex-col gap-4">
             <h2 class="text-xl font-semibold mb-2">Inputs</h2>
             <div>
-                <label class="block text-sm mb-1">Initial Principal ($)</label>
-                <input type="number" id="principal" value="10000" class="w-full bg-slate-800 border border-slate-700 p-2 rounded focus:ring-2 focus:ring-emerald-500 outline-none">
+                <label class="block text-sm mb-1 opacity-80">Initial Principal ($)</label>
+                <input type="number" id="principal" value="10000" class="w-full p-2 rounded focus:ring-2 focus:ring-emerald-500 outline-none">
             </div>
             <div>
-                <label class="block text-sm mb-1">Monthly Contribution ($)</label>
-                <input type="number" id="monthly" value="500" class="w-full bg-slate-800 border border-slate-700 p-2 rounded focus:ring-2 focus:ring-emerald-500 outline-none">
+                <label class="block text-sm mb-1 opacity-80">Monthly Contribution ($)</label>
+                <input type="number" id="monthly" value="500" class="w-full p-2 rounded focus:ring-2 focus:ring-emerald-500 outline-none">
             </div>
             <div>
-                <label class="block text-sm mb-1">Annual Interest Rate (%)</label>
-                <input type="number" id="rate" value="7" step="0.1" class="w-full bg-slate-800 border border-slate-700 p-2 rounded focus:ring-2 focus:ring-emerald-500 outline-none">
+                <label class="block text-sm mb-1 opacity-80">Annual Interest Rate (%)</label>
+                <input type="number" id="rate" value="7" step="0.1" class="w-full p-2 rounded focus:ring-2 focus:ring-emerald-500 outline-none">
             </div>
             <div>
-                <label class="block text-sm mb-1">Time Horizon (Years)</label>
-                <input type="number" id="years" value="20" class="w-full bg-slate-800 border border-slate-700 p-2 rounded focus:ring-2 focus:ring-emerald-500 outline-none">
+                <label class="block text-sm mb-1 opacity-80">Time Horizon (Years)</label>
+                <input type="number" id="years" value="20" class="w-full p-2 rounded focus:ring-2 focus:ring-emerald-500 outline-none">
             </div>
             <button onclick="calculate()" class="mt-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded transition">Calculate</button>
         </div>
@@ -54,6 +98,31 @@
     </div>
 
     <script>
+        // Theme Persistence
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+        
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        applyTheme(savedTheme);
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = body.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(newTheme);
+            localStorage.setItem('theme', newTheme);
+            calculate(); // Redraw chart for color updates
+        });
+
+        function applyTheme(theme) {
+            if (theme === 'light') {
+                body.setAttribute('data-theme', 'light');
+                themeToggle.textContent = '☀️';
+            } else {
+                body.removeAttribute('data-theme');
+                themeToggle.textContent = '🌙';
+            }
+        }
+
         let myChart;
 
         function calculate() {
@@ -81,6 +150,10 @@
             }
 
             const ctx = document.getElementById('investmentChart').getContext('2d');
+            const style = getComputedStyle(document.body);
+            const chartTextColor = style.getPropertyValue('--chart-text').trim();
+            const gridColor = style.getPropertyValue('--chart-grid').trim();
+
             if (myChart) myChart.destroy();
 
             myChart = new Chart(ctx, {
@@ -106,24 +179,24 @@
                 options: {
                     responsive: true,
                     plugins: {
-                        legend: { labels: { color: 'white' } }
+                        legend: { labels: { color: chartTextColor } }
                     },
                     scales: {
                         y: { 
-                            ticks: { color: 'white', callback: value => '$' + value.toLocaleString() },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            ticks: { color: chartTextColor, callback: value => '$' + value.toLocaleString() },
+                            grid: { color: gridColor }
                         },
                         x: { 
-                            ticks: { color: 'white' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            ticks: { color: chartTextColor },
+                            grid: { color: gridColor }
                         }
                     }
                 }
             });
 
             document.getElementById('resultText').innerHTML = `
-                In ${years} years, your investment will grow to <span class="text-emerald-400 font-bold">$${Math.round(balance).toLocaleString()}</span>.<br>
-                <span class="text-slate-400 text-sm">Total Invested: $${totalInvested.toLocaleString()} | Total Interest: $${Math.round(balance - totalInvested).toLocaleString()}</span>
+                In ${years} years, your investment will grow to <span class="text-emerald-500 font-bold">$${Math.round(balance).toLocaleString()}</span>.<br>
+                <span class="opacity-60 text-sm">Total Invested: $${totalInvested.toLocaleString()} | Total Interest: $${Math.round(balance - totalInvested).toLocaleString()}</span>
             `;
         }
 
